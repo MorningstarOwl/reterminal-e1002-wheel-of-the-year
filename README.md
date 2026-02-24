@@ -89,7 +89,7 @@ esphome run wheel-of-the-year/e1002-wheel-of-the-year.yaml
 
 ## Notes
 
-- The display refreshes every **5 minutes** (driven by the SHT40 `on_value` callback at `update_interval: 300s`). Color ePaper takes ~30 seconds to complete a full refresh. The SHT40 readings are marked `internal: true` since they are only used as a refresh trigger, not exposed to Home Assistant.
+- The display refreshes every **hour** (driven by the SHT40 `on_value` callback at `update_interval: 3600s`). Color ePaper takes ~30 seconds to complete a full refresh. The SHT40 readings are marked `internal: true` since they are only used as a refresh trigger, not exposed to Home Assistant.
 - Requires **ESPHome ≥ 2025.11.0** for the `Seeed-reTerminal-E1002` display model.
 - The Arduino framework is mandatory for 8 MB PSRAM support.
 - Fonts used: **Cinzel** (thematic serif for headers) and **Inter** (clean sans-serif for body). Both loaded via `gfonts://`.

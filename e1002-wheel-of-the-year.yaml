@@ -216,7 +216,7 @@ sensor:
   # ── Internal SHT40 — used as display refresh trigger ────────────────────
   - platform: sht4x
     address: 0x44
-    update_interval: 300s          # 5-minute cycle matches integration
+    update_interval: 3600s         # 1-hour refresh cycle
     temperature:
       name: "Indoor Temperature"
       id: indoor_temp
