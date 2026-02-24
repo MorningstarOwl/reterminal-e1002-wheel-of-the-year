@@ -87,6 +87,10 @@ ota_password: "your_ota_password"
 esphome run wheel-of-the-year/e1002-wheel-of-the-year.yaml
 ```
 
+## Manual Refresh
+
+The green button on top of the device (GPIO3) triggers an immediate display refresh when pressed. This is useful for forcing an update outside of the hourly cycle without waiting for the next SHT40 reading.
+
 ## Notes
 
 - The display refreshes every **hour** (driven by the SHT40 `on_value` callback at `update_interval: 3600s`). Color ePaper takes ~30 seconds to complete a full refresh. The SHT40 readings are marked `internal: true` since they are only used as a refresh trigger, not exposed to Home Assistant.
