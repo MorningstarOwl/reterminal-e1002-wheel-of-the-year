@@ -21,13 +21,13 @@
 #  │  "WHEEL OF THE YEAR"    date    battery%                              │
 #  ├──────────────────────────────┬──────────────────────────────────────────┤
 #  │  MOON PHASE  (x 0–310)      │  NEXT SABBAT  (x 320–520)  │ SEASON+   │
-#  │  Large phase name            │  Name + countdown          │ SUN SIGN  │
-#  │  Illumination %              │  Alt name                  │ (x 530–   │
-#  │  Drawn moon circle           │  Traditions                │  800)     │
-#  │  Magickal associations       │                            │           │
-#  │  (y 56–265)                  │  (y 56–265)                │           │
+#  │  Moon disc (centered top)    │  Name + countdown          │ SUN SIGN  │
+#  │  Phase name (below disc)     │  Alt name + date           │ (x 530–   │
+#  │  Illumination %              │  Description (3 lines)     │  800)     │
+#  │  Magick (2 lines, wrapped)   │                            │           │
+#  │  (y 56–262)                  │  (y 56–262)                │           │
 #  ├──────────────────────────────┴────────────────────────────┴───────────┤
-#  │  PLANETARY POSITIONS  (y 268–310)                                     │
+#  │  PLANETARY POSITIONS  (y 256–312)                                     │
 #  │  Sun · Moon · Mercury · Venus · Mars · Jupiter · Saturn               │
 #  ├───────────────────────────────────────────────────────────────────────┤
 #  │  SABBAT COUNTDOWNS  (y 314–478)  — 8 sabbats, 2 rows × 4 columns    │
@@ -112,7 +112,7 @@ binary_sensor:
       inverted: true
     name: "Refresh Button"
     filters:
-      - delayed_on: 50ms    # debounce
+      - delayed_on: 50ms
     on_press:
       then:
         - component.update: epaper_display
@@ -134,8 +134,6 @@ spi:
 
 ################################################################################
 # Fonts
-# Cinzel for headers (thematic serif), Inter for body text.
-# ePaper benefits from bold weights at all sizes.
 ################################################################################
 font:
   - file: "gfonts://Cinzel@700"
@@ -143,34 +141,35 @@ font:
     size: 30
 
   - file: "gfonts://Cinzel@600"
-    id: font_heading       # Section headings, large feature text
+    id: font_heading       # Section headings
     size: 26
 
   - file: "gfonts://Inter@700"
-    id: font_large         # Large values (moon phase name, sabbat name)
+    id: font_large         # Sabbat name, season name
     size: 32
 
   - file: "gfonts://Inter@700"
-    id: font_medium        # Section labels, medium values
+    id: font_medium        # Section labels, countdown days
     size: 22
 
   - file: "gfonts://Inter@600"
-    id: font_body          # Body text, descriptions
+    id: font_body          # Body text
     size: 18
 
   - file: "gfonts://Inter@600"
-    id: font_small         # Captions, planet positions, countdown values
+    id: font_small         # Captions, planet positions
+    # ~8.5px per char → 35 chars fit in 298px (moon column, x=12–308)
     size: 15
 
   - file: "gfonts://Inter@700"
     id: font_tiny          # Smallest labels
+    # ~7px per char → 26 chars fit in 186px (sabbat desc column, x=320–506)
     size: 12
 
 ################################################################################
-# Sensors — numeric values from Wheel of the Year integration
+# Sensors
 ################################################################################
 sensor:
-  # ── 8 Sabbat countdown sensors (state = days until) ─────────────────────
   - platform: homeassistant
     id: sabbat_yule
     entity_id: sensor.wheel_of_the_year_yule
@@ -203,13 +202,11 @@ sensor:
     id: sabbat_samhain
     entity_id: sensor.wheel_of_the_year_samhain
 
-  # ── Moon illumination (attribute from moon_phase sensor) ─────────────────
   - platform: homeassistant
     id: moon_illumination
     entity_id: sensor.wheel_of_the_year_moon_phase
     attribute: illumination
 
-  # ── Battery ──────────────────────────────────────────────────────────────
   - platform: adc
     pin: GPIO1
     name: "Battery Voltage"
@@ -230,10 +227,9 @@ sensor:
       if (v <= 3.2) return 0.0;
       return (v - 3.2) / (4.2 - 3.2) * 100.0;
 
-  # ── Internal SHT40 — used as display refresh trigger ────────────────────
   - platform: sht4x
     address: 0x44
-    update_interval: 3600s         # 1-hour refresh cycle
+    update_interval: 3600s
     temperature:
       name: "Indoor Temperature"
       id: indoor_temp
@@ -247,14 +243,12 @@ sensor:
           - component.update: epaper_display
 
 ################################################################################
-# Text sensors — string values from Wheel of the Year integration
+# Text sensors
 ################################################################################
 text_sensor:
-  # ── Moon Phase ───────────────────────────────────────────────────────────
   - platform: homeassistant
     id: moon_phase
     entity_id: sensor.wheel_of_the_year_moon_phase
-    # State: "Full Moon", "Waxing Crescent", etc.
 
   - platform: homeassistant
     id: moon_magick
@@ -266,11 +260,9 @@ text_sensor:
     entity_id: sensor.wheel_of_the_year_moon_phase
     attribute: emoji
 
-  # ── Sun Sign ─────────────────────────────────────────────────────────────
   - platform: homeassistant
     id: sun_sign
     entity_id: sensor.wheel_of_the_year_sun_sign
-    # State: "Pisces", "Aries", etc.
 
   - platform: homeassistant
     id: sun_sign_symbol
@@ -282,11 +274,9 @@ text_sensor:
     entity_id: sensor.wheel_of_the_year_sun_sign
     attribute: element
 
-  # ── Current Season ───────────────────────────────────────────────────────
   - platform: homeassistant
     id: current_season
     entity_id: sensor.wheel_of_the_year_current_season
-    # State: "Winter", "Spring", etc.
 
   - platform: homeassistant
     id: season_emoji
@@ -298,11 +288,9 @@ text_sensor:
     entity_id: sensor.wheel_of_the_year_current_season
     attribute: short_description
 
-  # ── Next Sabbat ──────────────────────────────────────────────────────────
   - platform: homeassistant
     id: next_sabbat
     entity_id: sensor.wheel_of_the_year_next_sabbat
-    # State: "Ostara", "Beltane", etc.
 
   - platform: homeassistant
     id: next_sabbat_alt
@@ -319,7 +307,6 @@ text_sensor:
     entity_id: sensor.wheel_of_the_year_next_sabbat
     attribute: description
 
-  # ── Planetary Positions (state = "Sign Degree°") ────────────────────────
   - platform: homeassistant
     id: planet_sun
     entity_id: sensor.wheel_of_the_year_sun_position
@@ -348,24 +335,12 @@ text_sensor:
     id: planet_saturn
     entity_id: sensor.wheel_of_the_year_saturn_position
 
-  # ── Solar Cycle ──────────────────────────────────────────────────────────
   - platform: homeassistant
     id: solar_cycle
     entity_id: sensor.wheel_of_the_year_solar_cycle
 
 ################################################################################
-# ePaper Display — Wheel of the Year  ·  Wicca Calendar
-# 7.3" E Ink Spectra 6  |  800×480  |  6 colors
-#
-# Color usage:
-#   BLACK  — body text, rules, outlines
-#   WHITE  — header text, highlight text on dark backgrounds
-#   RED    — fire sabbats (Imbolc, Beltane, Lughnasadh, Samhain), highs
-#   GREEN  — earth/nature elements, season label
-#   YELLOW — sun/solar, sabbat names, next-sabbat highlight
-#   BLUE   — moon/water, header bar, planetary labels
-#
-# Refresh triggered by SHT40 on_value (every 300s). Color ePaper ~30s refresh.
+# ePaper Display
 ################################################################################
 display:
   - platform: epaper_spi
@@ -385,362 +360,328 @@ display:
       const int W = 800;
       const int H = 480;
 
+      // ── Helper: word-wrap a string into fixed-width lines ────────────────
+      // Splits `s` into segments of at most `max_chars`, breaking on spaces.
+      // Returns up to `max_lines` segments; last segment gets "..." if truncated.
+      auto wrap_text = [](const std::string &s, int max_chars, int max_lines)
+          -> std::vector<std::string> {
+        std::vector<std::string> lines;
+        std::string remain = s;
+        for (int i = 0; i < max_lines && !remain.empty(); i++) {
+          if ((int)remain.length() <= max_chars) {
+            lines.push_back(remain);
+            remain.clear();
+          } else {
+            // Find last space at or before max_chars
+            size_t cut = remain.rfind(' ', max_chars);
+            if (cut == std::string::npos) cut = max_chars; // hard break
+            std::string seg = remain.substr(0, cut);
+            remain = remain.substr(cut + (remain[cut] == ' ' ? 1 : 0));
+            // If this is the last allowed line and text still remains, add ellipsis
+            if (i == max_lines - 1 && !remain.empty()) {
+              if ((int)seg.length() > max_chars - 3)
+                seg = seg.substr(0, max_chars - 3);
+              seg += "...";
+            }
+            lines.push_back(seg);
+          }
+        }
+        return lines;
+      };
+
+      // Fill entire display background
+      it.filled_rectangle(0, 0, W, H, BLACK);
+
       // ════════════════════════════════════════════════════════════════════════
       // SECTION 1 — HEADER BAR  (y: 0–52)
-      // Dark bar with title, date, and battery
       // ════════════════════════════════════════════════════════════════════════
       it.filled_rectangle(0, 0, W, 52, BLACK);
-
       it.print(16, 10, id(font_title), YELLOW, "WHEEL OF THE YEAR");
 
-      // Date — right aligned
       auto now = id(ha_time).now();
       if (now.is_valid()) {
         char datebuf[32];
         now.strftime(datebuf, sizeof(datebuf), "%a  %b %d, %Y");
-        it.print(W - 16, 12, id(font_medium), WHITE,
-                 TextAlign::TOP_RIGHT, datebuf);
+        it.print(W - 16, 12, id(font_medium), WHITE, TextAlign::TOP_RIGHT, datebuf);
       }
 
-      // Battery — below date
       float batt = id(battery_level).state;
       if (!isnan(batt)) {
         it.printf(W - 16, 35, id(font_tiny), WHITE,
                   TextAlign::TOP_RIGHT, "Battery: %.0f%%", batt);
       }
 
-      // Season badge — centered in header subtitle area
       if (id(current_season).has_state()) {
         std::string season_str = id(current_season).state;
-        // Color-code season in the header
         Color season_col = WHITE;
-        if (season_str == "Spring") season_col = GREEN;
+        if (season_str == "Spring")      season_col = GREEN;
         else if (season_str == "Summer") season_col = YELLOW;
         else if (season_str == "Autumn") season_col = RED;
         else if (season_str == "Winter") season_col = BLUE;
-
         it.printf(400, 35, id(font_tiny), season_col,
                   TextAlign::TOP_CENTER, "%s", season_str.c_str());
       }
 
-      // Thin accent line below header
       it.filled_rectangle(0, 52, W, 2, YELLOW);
 
       // ════════════════════════════════════════════════════════════════════════
-      // SECTION 2a — MOON PHASE  (x: 0–305, y: 56–262)
-      // The moon phase is the spiritual heartbeat of the display.
+      // SECTION 2a — MOON PHASE  (x: 0–310, y: 54–262)
+      //
+      // Column usable width:  x=12 → x=308 = 296px
+      // font_small  (~8.5px/char) → 34 chars max per line
+      // font_medium (~13px/char)  → 22 chars max (covers "Waxing Gibbous" = 14)
+      //
+      // Vertical layout:
+      //   y= 58  "LUNAR PHASE" heading (font_medium)
+      //   y= 80  rule
+      //   y= 84  Moon disc, center (155, 122), radius 36
+      //          disc occupies y=86–158
+      //   y= 163 Phase name (font_medium, 22px)
+      //   y= 188 Illumination % (font_body, 18px)
+      //   y= 210 "Magick:" label (font_small, 15px)
+      //   y= 226 Magick line 1  (font_small, 15px)
+      //   y= 243 Magick line 2  (font_small, 15px) — baseline ~y=255, fits
       // ════════════════════════════════════════════════════════════════════════
-      it.print(12, 60, id(font_medium), BLUE, "LUNAR PHASE");
-      it.filled_rectangle(12, 82, 285, 1, BLUE);
+      it.print(12, 58, id(font_medium), BLUE, "LUNAR PHASE");
+      it.filled_rectangle(12, 80, 285, 1, BLUE);
 
-      // ── Draw Moon Circle (simplified) ──────────────────────────────────
-      // Center the moon disc at (80, 150), radius 42
-      const int MX = 80;
-      const int MY = 155;
-      const int MOON_R = 42;
+      const int MX     = 155;
+      const int MY     = 122;
+      const int MOON_R = 36;
 
-      // Outer circle (full disc outline)
-      it.circle(MX, MY, MOON_R, BLACK);
-      it.circle(MX, MY, MOON_R - 1, BLACK);
-
-      // Fill based on phase name to approximate appearance
-      // We draw a filled circle then overlay to simulate the phase
-      float illum = 0.0;
-      if (!isnan(id(moon_illumination).state)) {
+      float illum = 0.0f;
+      if (!isnan(id(moon_illumination).state))
         illum = id(moon_illumination).state;
-      }
 
-      // Full disc background (dark side)
-      it.filled_circle(MX, MY, MOON_R - 2, BLACK);
-
-      // Approximate lit portion using illumination percentage
-      // For simplicity on ePaper: fill proportional vertical slices
-      // from the right (waxing) or left (waning) side
       bool is_waning = false;
       if (id(moon_phase).has_state()) {
-        std::string phase = id(moon_phase).state;
-        is_waning = (phase.find("Waning") != std::string::npos ||
-                     phase.find("Third") != std::string::npos);
+        const std::string &ph = id(moon_phase).state;
+        is_waning = (ph.find("Waning") != std::string::npos ||
+                     ph.find("Third")  != std::string::npos);
       }
 
-      int lit_width = (int)(MOON_R * 2.0 * illum / 100.0);
+      // Dark base disc
+      it.filled_circle(MX, MY, MOON_R, BLACK);
+
+      // Lit portion via vertical scan lines
+      int lit_width = (int)(MOON_R * 2.0f * illum / 100.0f);
       if (lit_width > 0) {
         if (is_waning) {
-          // Lit from left
           for (int col = 0; col < lit_width && col < MOON_R * 2; col++) {
-            int x = MX - MOON_R + 2 + col;
-            // Calculate vertical extent at this x using circle equation
+            int x  = MX - MOON_R + 1 + col;
             int dx = x - MX;
-            int h = (int)sqrt((float)(MOON_R * MOON_R - dx * dx));
-            if (h > 0) {
-              it.line(x, MY - h + 2, x, MY + h - 2, WHITE);
-            }
+            int h  = (int)sqrtf((float)(MOON_R * MOON_R - dx * dx));
+            if (h > 0) it.line(x, MY - h + 1, x, MY + h - 1, WHITE);
           }
         } else {
-          // Lit from right (waxing / full)
           for (int col = 0; col < lit_width && col < MOON_R * 2; col++) {
-            int x = MX + MOON_R - 2 - col;
+            int x  = MX + MOON_R - 1 - col;
             int dx = x - MX;
-            int h = (int)sqrt((float)(MOON_R * MOON_R - dx * dx));
-            if (h > 0) {
-              it.line(x, MY - h + 2, x, MY + h - 2, WHITE);
-            }
+            int h  = (int)sqrtf((float)(MOON_R * MOON_R - dx * dx));
+            if (h > 0) it.line(x, MY - h + 1, x, MY + h - 1, WHITE);
           }
         }
       }
+      // Redraw outline over scan lines
+      it.circle(MX, MY, MOON_R, WHITE);
 
-      // Phase name — large, to the right of the moon disc
-      if (id(moon_phase).has_state()) {
-        it.print(138, 92, id(font_large), BLACK,
-                 id(moon_phase).state.c_str());
-      } else {
-        it.print(138, 92, id(font_large), BLACK, "---");
-      }
+      // Phase name
+      if (id(moon_phase).has_state())
+        it.print(12, 163, id(font_medium), WHITE, id(moon_phase).state.c_str());
+      else
+        it.print(12, 163, id(font_medium), WHITE, "---");
 
-      // Illumination percentage
-      if (!isnan(illum)) {
-        it.printf(138, 128, id(font_body), BLACK,
-                  "%.0f%% Illuminated", illum);
-      }
+      // Illumination
+      if (!isnan(illum))
+        it.printf(12, 188, id(font_body), WHITE, "%.0f%% Illuminated", illum);
 
-      // Magickal correspondence
-      it.print(12, 205, id(font_small), BLUE, "Magick:");
+      // Magick — wrap to 2 lines of 34 chars each (font_small ~8.5px → 289px max)
+      it.print(12, 210, id(font_small), BLUE, "Magick:");
       if (id(moon_magick).has_state()) {
-        // Truncate if too long for display width
-        std::string magick = id(moon_magick).state;
-        if (magick.length() > 48) {
-          magick = magick.substr(0, 45) + "...";
+        auto mlines = wrap_text(id(moon_magick).state, 34, 2);
+        int my_y = 226;
+        for (auto &ml : mlines) {
+          it.print(12, my_y, id(font_small), WHITE, ml.c_str());
+          my_y += 17;
         }
-        it.print(12, 222, id(font_small), BLACK, magick.c_str());
       }
 
-      // Thin border at panel bottom
-      it.filled_rectangle(12, 248, 285, 1, BLACK);
-
-      // Vertical divider
-      it.filled_rectangle(310, 56, 2, 208, BLACK);
+      it.filled_rectangle(310, 54, 2, 210, WHITE);  // vertical divider
 
       // ════════════════════════════════════════════════════════════════════════
-      // SECTION 2b — NEXT SABBAT  (x: 320–520, y: 56–262)
-      // Prominently shows the approaching sabbat.
+      // SECTION 2b — NEXT SABBAT  (x: 320–520, y: 54–262)
+      //
+      // Column usable width:  x=320 → x=518 = 198px
+      // font_tiny (~7px/char) → 28 chars max per line
+      // font_large (32px) — "Lughnasadh" = 10 chars × ~19px ≈ 190px, just fits
+      //
+      // Vertical layout:
+      //   y= 58  "NEXT SABBAT" heading (font_medium)
+      //   y= 80  rule
+      //   y= 88  Sabbat name (font_large, 32px)
+      //   y= 124 Alt name (font_body, 18px)
+      //   y= 146 Date string (font_small, 15px)
+      //   y= 164 Days countdown (font_medium, 22px)
+      //   y= 190 Description line 1 (font_tiny, 12px)
+      //   y= 204 Description line 2 (font_tiny, 12px)
+      //   y= 218 Description line 3 (font_tiny, 12px)
+      //   y= 232 Description line 4 (font_tiny, 12px)  ← extra line vs before
       // ════════════════════════════════════════════════════════════════════════
-      it.print(320, 60, id(font_medium), RED, "NEXT SABBAT");
-      it.filled_rectangle(320, 82, 195, 1, RED);
+      it.print(320, 58, id(font_medium), RED, "NEXT SABBAT");
+      it.filled_rectangle(320, 80, 195, 1, RED);
 
-      if (id(next_sabbat).has_state()) {
-        // Sabbat name — large yellow
-        it.print(320, 90, id(font_large), YELLOW,
-                 id(next_sabbat).state.c_str());
-      }
+      if (id(next_sabbat).has_state())
+        it.print(320, 88, id(font_large), YELLOW, id(next_sabbat).state.c_str());
 
-      // Alt name (e.g. "Spring Equinox")
-      if (id(next_sabbat_alt).has_state()) {
-        it.print(320, 124, id(font_body), BLACK,
-                 id(next_sabbat_alt).state.c_str());
-      }
+      if (id(next_sabbat_alt).has_state())
+        it.print(320, 124, id(font_body), WHITE, id(next_sabbat_alt).state.c_str());
 
-      // Date
-      if (id(next_sabbat_date).has_state()) {
-        it.print(320, 146, id(font_small), BLACK,
-                 id(next_sabbat_date).state.c_str());
-      }
+      if (id(next_sabbat_date).has_state())
+        it.print(320, 146, id(font_small), WHITE, id(next_sabbat_date).state.c_str());
 
-      // Days countdown — find which sabbat sensor matches
-      // Use the next_sabbat name to pick the right countdown sensor
+      // Days countdown
       float days_left = NAN;
       if (id(next_sabbat).has_state()) {
-        std::string ns = id(next_sabbat).state;
-        if (ns == "Yule")        days_left = id(sabbat_yule).state;
-        else if (ns == "Imbolc") days_left = id(sabbat_imbolc).state;
-        else if (ns == "Ostara") days_left = id(sabbat_ostara).state;
-        else if (ns == "Beltane") days_left = id(sabbat_beltane).state;
-        else if (ns == "Litha")  days_left = id(sabbat_litha).state;
-        else if (ns == "Lughnasadh") days_left = id(sabbat_lughnasadh).state;
-        else if (ns == "Mabon")  days_left = id(sabbat_mabon).state;
-        else if (ns == "Samhain") days_left = id(sabbat_samhain).state;
+        const std::string &ns = id(next_sabbat).state;
+        if      (ns == "Yule")        days_left = id(sabbat_yule).state;
+        else if (ns == "Imbolc")      days_left = id(sabbat_imbolc).state;
+        else if (ns == "Ostara")      days_left = id(sabbat_ostara).state;
+        else if (ns == "Beltane")     days_left = id(sabbat_beltane).state;
+        else if (ns == "Litha")       days_left = id(sabbat_litha).state;
+        else if (ns == "Lughnasadh")  days_left = id(sabbat_lughnasadh).state;
+        else if (ns == "Mabon")       days_left = id(sabbat_mabon).state;
+        else if (ns == "Samhain")     days_left = id(sabbat_samhain).state;
       }
-
       if (!isnan(days_left)) {
-        if (days_left < 0.5) {
-          it.print(320, 168, id(font_medium), YELLOW, "TODAY!");
-        } else {
-          it.printf(320, 168, id(font_medium), RED,
-                    "%.0f days", days_left);
-        }
+        if (days_left < 0.5)
+          it.print(320, 164, id(font_medium), YELLOW, "TODAY!");
+        else
+          it.printf(320, 164, id(font_medium), RED, "%.0f days", days_left);
       }
 
-      // Brief description (first ~60 chars)
+      // Description — wrap to 4 lines of 28 chars (font_tiny ~7px → 196px max)
       if (id(next_sabbat_description).has_state()) {
-        std::string desc = id(next_sabbat_description).state;
-        // Wrap to ~35 chars per line, 2 lines max
-        if (desc.length() > 70) desc = desc.substr(0, 67) + "...";
-        size_t mid = desc.find(' ', 33);
-        if (mid != std::string::npos && mid < 45) {
-          it.print(320, 196, id(font_tiny), BLACK,
-                   desc.substr(0, mid).c_str());
-          it.print(320, 210, id(font_tiny), BLACK,
-                   desc.substr(mid + 1).c_str());
-        } else {
-          it.print(320, 196, id(font_tiny), BLACK, desc.c_str());
+        auto dlines = wrap_text(id(next_sabbat_description).state, 28, 4);
+        int dy = 190;
+        for (auto &dl : dlines) {
+          it.print(320, dy, id(font_tiny), WHITE, dl.c_str());
+          dy += 14;
         }
       }
 
-      it.filled_rectangle(320, 248, 195, 1, BLACK);
-
-      // Vertical divider
-      it.filled_rectangle(525, 56, 2, 208, BLACK);
+      it.filled_rectangle(525, 54, 2, 210, WHITE);  // vertical divider
 
       // ════════════════════════════════════════════════════════════════════════
-      // SECTION 2c — SUN SIGN + SEASON  (x: 535–790, y: 56–262)
+      // SECTION 2c — SUN SIGN + SEASON  (x: 535–790, y: 54–262)
+      //
+      // Column usable width: x=535 → x=788 = 253px
+      // font_tiny (~7px/char) → 36 chars max per line
       // ════════════════════════════════════════════════════════════════════════
-      it.print(535, 60, id(font_medium), YELLOW, "SUN SIGN");
-      it.filled_rectangle(535, 82, 255, 1, YELLOW);
+      it.print(535, 58, id(font_medium), YELLOW, "SUN SIGN");
+      it.filled_rectangle(535, 80, 255, 1, YELLOW);
 
-      // Sign name — large
-      if (id(sun_sign).has_state()) {
-        it.print(535, 90, id(font_large), BLACK,
-                 id(sun_sign).state.c_str());
-      }
+      if (id(sun_sign).has_state())
+        it.print(535, 88, id(font_large), WHITE, id(sun_sign).state.c_str());
 
-      // Element + quality
-      if (id(sun_sign_element).has_state()) {
-        it.print(535, 126, id(font_body), GREEN,
-                 id(sun_sign_element).state.c_str());
-      }
+      if (id(sun_sign_element).has_state())
+        it.print(535, 124, id(font_body), GREEN, id(sun_sign_element).state.c_str());
 
-      // ── Season block ──
-      it.filled_rectangle(535, 152, 255, 1, BLACK);
-      it.print(535, 158, id(font_medium), GREEN, "SEASON");
+      it.filled_rectangle(535, 150, 255, 1, WHITE);
+      it.print(535, 156, id(font_medium), GREEN, "SEASON");
 
       if (id(current_season).has_state()) {
-        Color s_col = BLACK;
-        std::string sn = id(current_season).state;
-        if (sn == "Spring") s_col = GREEN;
+        Color s_col = WHITE;
+        const std::string &sn = id(current_season).state;
+        if (sn == "Spring")      s_col = GREEN;
         else if (sn == "Summer") s_col = YELLOW;
         else if (sn == "Autumn") s_col = RED;
         else if (sn == "Winter") s_col = BLUE;
-
-        it.print(535, 180, id(font_large), s_col, sn.c_str());
+        it.print(535, 178, id(font_large), s_col, sn.c_str());
       }
 
-      // Season short description
       if (id(season_description).has_state()) {
-        std::string sd = id(season_description).state;
-        if (sd.length() > 70) sd = sd.substr(0, 67) + "...";
-        size_t mid = sd.find(' ', 33);
-        if (mid != std::string::npos && mid < 45) {
-          it.print(535, 216, id(font_tiny), BLACK,
-                   sd.substr(0, mid).c_str());
-          it.print(535, 230, id(font_tiny), BLACK,
-                   sd.substr(mid + 1).c_str());
-        } else {
-          it.print(535, 216, id(font_tiny), BLACK, sd.c_str());
+        auto slines = wrap_text(id(season_description).state, 36, 2);
+        int sy = 216;
+        for (auto &sl : slines) {
+          it.print(535, sy, id(font_tiny), WHITE, sl.c_str());
+          sy += 14;
         }
       }
 
-      it.filled_rectangle(535, 248, 255, 1, BLACK);
+      // Horizontal rule separating top panels from planetary row
+      it.filled_rectangle(0, 264, W, 2, WHITE);
 
       // ════════════════════════════════════════════════════════════════════════
-      // SECTION 3 — PLANETARY POSITIONS  (y: 256–310)
-      // Compact row showing key planet transits
+      // SECTION 3 — PLANETARY POSITIONS  (y: 266–318)
+      // No title bar — full 52px given to planet name + sign text.
+      //   P_Y      = 268  planet name label  (font_tiny  12px → baseline ~280)
+      //   P_Y + 16 = 284  sign + degree text (font_small 15px → baseline ~299)
+      //   Column dividers span y=266–318 (52px)
       // ════════════════════════════════════════════════════════════════════════
-      it.filled_rectangle(0, 256, W, 2, BLACK);
-      it.filled_rectangle(0, 256, W, 24, BLACK);
-      it.print(W / 2, 258, id(font_small), YELLOW,
-               TextAlign::TOP_CENTER, "PLANETARY POSITIONS");
-      it.filled_rectangle(0, 280, W, 1, YELLOW);
+      const int P_Y     = 268;
+      const int P_COLS  = 7;
+      const int P_COL_W = W / P_COLS;  // 114px
 
-      // 7 planets across 800px ≈ 114px each
-      struct PlanetDisplay {
-        const char *label;
-        text_sensor::TextSensor *sensor_ptr;
-        Color color;
-      };
-
-      // We'll build this inline since lambda can't use initializer lists
-      // of pointers easily — just do them sequentially
-      const int P_Y = 286;
-      const int P_COLS = 7;
-      const int P_COL_W = W / P_COLS;  // ~114px
-
-      // Planet 0: Sun
       it.print(P_COL_W * 0 + 6, P_Y, id(font_tiny), YELLOW, "Sun");
-      if (id(planet_sun).has_state()) {
-        it.print(P_COL_W * 0 + 6, P_Y + 13, id(font_small), BLACK,
+      if (id(planet_sun).has_state())
+        it.print(P_COL_W * 0 + 6, P_Y + 16, id(font_small), WHITE,
                  id(planet_sun).state.c_str());
-      }
 
-      // Planet 1: Moon
       it.print(P_COL_W * 1 + 6, P_Y, id(font_tiny), BLUE, "Moon");
-      if (id(planet_moon).has_state()) {
-        it.print(P_COL_W * 1 + 6, P_Y + 13, id(font_small), BLACK,
+      if (id(planet_moon).has_state())
+        it.print(P_COL_W * 1 + 6, P_Y + 16, id(font_small), WHITE,
                  id(planet_moon).state.c_str());
-      }
 
-      // Planet 2: Mercury
-      it.print(P_COL_W * 2 + 6, P_Y, id(font_tiny), BLACK, "Mercury");
-      if (id(planet_mercury).has_state()) {
-        it.print(P_COL_W * 2 + 6, P_Y + 13, id(font_small), BLACK,
+      it.print(P_COL_W * 2 + 6, P_Y, id(font_tiny), WHITE, "Mercury");
+      if (id(planet_mercury).has_state())
+        it.print(P_COL_W * 2 + 6, P_Y + 16, id(font_small), WHITE,
                  id(planet_mercury).state.c_str());
-      }
 
-      // Planet 3: Venus
       it.print(P_COL_W * 3 + 6, P_Y, id(font_tiny), GREEN, "Venus");
-      if (id(planet_venus).has_state()) {
-        it.print(P_COL_W * 3 + 6, P_Y + 13, id(font_small), BLACK,
+      if (id(planet_venus).has_state())
+        it.print(P_COL_W * 3 + 6, P_Y + 16, id(font_small), WHITE,
                  id(planet_venus).state.c_str());
-      }
 
-      // Planet 4: Mars
       it.print(P_COL_W * 4 + 6, P_Y, id(font_tiny), RED, "Mars");
-      if (id(planet_mars).has_state()) {
-        it.print(P_COL_W * 4 + 6, P_Y + 13, id(font_small), BLACK,
+      if (id(planet_mars).has_state())
+        it.print(P_COL_W * 4 + 6, P_Y + 16, id(font_small), WHITE,
                  id(planet_mars).state.c_str());
-      }
 
-      // Planet 5: Jupiter
       it.print(P_COL_W * 5 + 6, P_Y, id(font_tiny), YELLOW, "Jupiter");
-      if (id(planet_jupiter).has_state()) {
-        it.print(P_COL_W * 5 + 6, P_Y + 13, id(font_small), BLACK,
+      if (id(planet_jupiter).has_state())
+        it.print(P_COL_W * 5 + 6, P_Y + 16, id(font_small), WHITE,
                  id(planet_jupiter).state.c_str());
-      }
 
-      // Planet 6: Saturn
-      it.print(P_COL_W * 6 + 6, P_Y, id(font_tiny), BLACK, "Saturn");
-      if (id(planet_saturn).has_state()) {
-        it.print(P_COL_W * 6 + 6, P_Y + 13, id(font_small), BLACK,
+      it.print(P_COL_W * 6 + 6, P_Y, id(font_tiny), WHITE, "Saturn");
+      if (id(planet_saturn).has_state())
+        it.print(P_COL_W * 6 + 6, P_Y + 16, id(font_small), WHITE,
                  id(planet_saturn).state.c_str());
-      }
 
-      // Column dividers
-      for (int i = 1; i < P_COLS; i++) {
-        it.filled_rectangle(P_COL_W * i, 282, 1, 30, BLACK);
-      }
+      for (int i = 1; i < P_COLS; i++)
+        it.filled_rectangle(P_COL_W * i, 266, 1, 52, WHITE);
 
       // ════════════════════════════════════════════════════════════════════════
-      // SECTION 4 — SABBAT COUNTDOWNS  (y: 316–478)
-      // 8 sabbats in a 2×4 grid. Each cell ~200×80px.
-      // Color-coded: solar sabbats (YELLOW), cross-quarter (RED)
-      // The "next" sabbat gets a highlight border.
+      // SECTION 4 — SABBAT COUNTDOWNS  (y: 318–478)
+      //
+      // Geometry budget:
+      //   SB_Y0   = 318   (grid starts immediately, no title bar)
+      //   CELL_H  =  80px (2 rows × 80 = 160px)
+      //   Grid bottom = 318 + 160 = 478 ≤ 480  ✓
+      //
+      // Cell text positions (relative to cell top y0):
+      //   y0 + 4   Sabbat name    (font_medium 22px → baseline y0+26)
+      //   y0 + 30  Alt name       (font_tiny   12px → baseline y0+42)
+      //   y0 + 50  Days countdown (font_medium 22px → baseline y0+72) ✓
       // ════════════════════════════════════════════════════════════════════════
-      const int SB_Y0 = 316;
-
-      it.filled_rectangle(0, SB_Y0, W, 2, BLACK);
-      it.filled_rectangle(0, SB_Y0, W, 22, BLACK);
-      it.print(W / 2, SB_Y0 + 2, id(font_small), WHITE,
-               TextAlign::TOP_CENTER, "SABBAT COUNTDOWNS");
-      it.filled_rectangle(0, SB_Y0 + 22, W, 1, YELLOW);
-
-      const int SB_TOP = SB_Y0 + 25;   // y where grid content starts
+      const int SB_Y0  = 318;
+      const int SB_TOP = SB_Y0;         // grid starts immediately, no title bar
       const int CELL_W = 200;           // 800 / 4
-      const int CELL_H = 76;            // (478 - 326) / 2
+      const int CELL_H = 80;            // 2 rows × 80 = 160px; 318+160=478 ≤ 480 ✓
 
-      // Sabbat data: name, type (solar/cross), sensor reference
-      // type: 0=solar (solstice/equinox), 1=cross-quarter
       struct SabbatInfo {
         const char *name;
         const char *alt;
-        int type;       // 0=solar, 1=cross
+        int type;       // 0=solar, 1=cross-quarter
         float days;
       };
 
@@ -755,11 +696,12 @@ display:
         {"Samhain",    "Hallows' Eve",     1, id(sabbat_samhain).state},
       };
 
-      // Find which sabbat is next (smallest days > 0, or == 0)
+      // Find next sabbat
       int next_idx = -1;
-      float min_days = 999;
+      float min_days = 999.0f;
       for (int i = 0; i < 8; i++) {
-        if (!isnan(sabbats[i].days) && sabbats[i].days >= 0 && sabbats[i].days < min_days) {
+        if (!isnan(sabbats[i].days) && sabbats[i].days >= 0.0f &&
+            sabbats[i].days < min_days) {
           min_days = sabbats[i].days;
           next_idx = i;
         }
@@ -768,44 +710,38 @@ display:
       for (int i = 0; i < 8; i++) {
         int col = i % 4;
         int row = i / 4;
-        int x0 = col * CELL_W;
-        int y0 = SB_TOP + row * CELL_H;
+        int x0  = col * CELL_W;
+        int y0  = SB_TOP + row * CELL_H;
 
-        // Highlight box for next sabbat
-        if (i == next_idx) {
+        if (i == next_idx)
           it.filled_rectangle(x0 + 1, y0 + 1, CELL_W - 2, CELL_H - 2, YELLOW);
-          // Redraw text on yellow background → use BLACK for everything
-        }
 
-        // Cell border
-        it.rectangle(x0, y0, CELL_W, CELL_H, BLACK);
+        it.rectangle(x0, y0, CELL_W, CELL_H, WHITE);
 
-        // Sabbat name — color by type
-        Color name_col = sabbats[i].type == 0 ? YELLOW : RED;
-        if (i == next_idx) name_col = BLACK;  // on yellow bg
+        // Sabbat name
+        Color name_col = (sabbats[i].type == 0) ? YELLOW : RED;
+        if (i == next_idx) name_col = BLACK;
+        it.print(x0 + 8, y0 + 4, id(font_medium), name_col, sabbats[i].name);
 
-        it.print(x0 + 8, y0 + 4, id(font_medium), name_col,
-                 sabbats[i].name);
-
-        // Alt name
-        Color alt_col = i == next_idx ? BLACK : BLACK;
-        it.print(x0 + 8, y0 + 28, id(font_tiny), alt_col,
-                 sabbats[i].alt);
+        // Alt name (BLACK on yellow highlight, WHITE on dark background)
+        it.print(x0 + 8, y0 + 30, id(font_tiny),
+                 (i == next_idx) ? BLACK : WHITE, sabbats[i].alt);
 
         // Days countdown
         if (!isnan(sabbats[i].days)) {
-          Color days_col = i == next_idx ? RED : BLUE;
-          if (sabbats[i].days < 0.5) {
-            it.print(x0 + 8, y0 + 46, id(font_medium),
-                     i == next_idx ? RED : GREEN, "TODAY!");
+          if (sabbats[i].days < 0.5f) {
+            it.print(x0 + 8, y0 + 50, id(font_medium),
+                     (i == next_idx) ? RED : GREEN, "TODAY!");
           } else {
-            it.printf(x0 + 8, y0 + 46, id(font_medium), days_col,
+            Color days_col = (i == next_idx) ? RED : BLUE;
+            it.printf(x0 + 8, y0 + 50, id(font_medium), days_col,
                       "%.0f days", sabbats[i].days);
           }
         } else {
-          it.print(x0 + 8, y0 + 46, id(font_medium), BLACK, "---");
+          it.print(x0 + 8, y0 + 50, id(font_medium),
+                   (i == next_idx) ? BLACK : WHITE, "---");
         }
       }
 
       // Bottom border
-      it.filled_rectangle(0, H - 2, W, 2, BLACK);
+      it.filled_rectangle(0, SB_TOP + 2 * CELL_H, W, 2, WHITE);
